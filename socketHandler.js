@@ -80,4 +80,5 @@ function setupSocket(io) {
   });
 }
 
-export default setupSocket;
+// ✅ FIX: Node.js (CommonJS) mein "export default" nahi, "module.exports" use karte hain
+module.exports = setupSocket;

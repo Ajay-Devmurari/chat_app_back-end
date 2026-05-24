@@ -4,7 +4,7 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 
 // ✅ FIX: Removed .default (it causes crash on deployment)
-const setupSocket = require("./socketHandler").default;
+const setupSocket = require("./socketHandler");
 
 require("dotenv").config();
 
