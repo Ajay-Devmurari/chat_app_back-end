@@ -7,6 +7,15 @@ function addUser(socketId, username) {
     joinedAt: new Date().toISOString(),
   };
 }
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e8, // ✅ FIX: 100MB limit (1e6 = 1MB, 1e8 = 100MB) for Base64 Images
+});
 
 function removeUser(socketId) {
   delete users[socketId];
@@ -47,7 +56,7 @@ function setupSocket(io) {
         isSeen: false,
         isDeleted: false,
         isEdited: false,
-        messageType: data.messageType || 'text',
+        messageType: data.messageType || "text",
         imageUrl: data.imageUrl || null,
         replyTo: data.replyTo || null,
         replyToText: data.replyToText || null,
@@ -60,7 +69,7 @@ function setupSocket(io) {
     // ✅ NEW: Edit Message
     socket.on("edit_message", (data) => {
       const updateData = {
-        type: 'edited',
+        type: "edited",
         id: data.id,
         message: data.message,
       };
@@ -72,7 +81,7 @@ function setupSocket(io) {
     // ✅ NEW: Delete Message
     socket.on("delete_message", (data) => {
       const updateData = {
-        type: 'deleted',
+        type: "deleted",
         id: data.id,
       };
       socket.emit("message_updated", updateData);
@@ -82,7 +91,7 @@ function setupSocket(io) {
     // ✅ NEW: Seen Receipt
     socket.on("message_seen", (data) => {
       const updateData = {
-        type: 'seen',
+        type: "seen",
         id: data.id,
       };
       // Only send to the original sender
@@ -102,10 +111,15 @@ function setupSocket(io) {
     socket.on("disconnect", (reason) => {
       const user = getUser(socket.id);
       if (user) {
-        console.log(`❌ User Disconnected: ${user.username} - Reason: ${reason}`);
+        console.log(
+          `❌ User Disconnected: ${user.username} - Reason: ${reason}`,
+        );
         removeUser(socket.id);
         io.emit("users_list", getOnlineUsers());
-        io.emit("user_disconnected", { socketId: socket.id, username: user.username });
+        io.emit("user_disconnected", {
+          socketId: socket.id,
+          username: user.username,
+        });
       }
     });
   });
