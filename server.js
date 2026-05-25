@@ -13,11 +13,12 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for dev and mobile apps
+    origin: "*",
     methods: ["GET", "POST"],
   },
   pingTimeout: 60000,
   pingInterval: 25000,
+  maxHttpBufferSize: 1e8, // ✅ FIX: 100MB limit (1e6 = 1MB, 1e8 = 100MB) for Base64 Images
 });
 
 app.use(cors());
