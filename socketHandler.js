@@ -32,30 +32,66 @@ function setupSocket(io) {
 
     console.log(`[USER] ${username} joined (${socket.id})`);
 
+    // ✅ UPDATED: Send Message with ID and new fields
     socket.on("send_message", (data) => {
       const sender = getUser(socket.id);
       if (!sender) return;
 
       const messageData = {
+        id: `${Date.now()}_${socket.id}`, // ✅ NEW: Unique ID
         senderId: socket.id,
         senderName: sender.username,
         targetId: data.targetSocketId,
         message: data.message,
         timestamp: new Date().toISOString(),
+        isSeen: false,
+        isDeleted: false,
+        isEdited: false,
+        messageType: data.messageType || 'text',
+        imageUrl: data.imageUrl || null,
+        replyTo: data.replyTo || null,
+        replyToText: data.replyToText || null,
       };
 
       io.to(data.targetSocketId).emit("receive_message", messageData);
       socket.emit("receive_message", messageData);
+    });
 
-      console.log(
-        `[MSG] ${sender.username} → ${data.targetSocketId}: ${data.message}`,
-      );
+    // ✅ NEW: Edit Message
+    socket.on("edit_message", (data) => {
+      const updateData = {
+        type: 'edited',
+        id: data.id,
+        message: data.message,
+      };
+      // Send to sender and receiver
+      socket.emit("message_updated", updateData);
+      io.to(data.targetSocketId).emit("message_updated", updateData);
+    });
+
+    // ✅ NEW: Delete Message
+    socket.on("delete_message", (data) => {
+      const updateData = {
+        type: 'deleted',
+        id: data.id,
+      };
+      socket.emit("message_updated", updateData);
+      io.to(data.targetSocketId).emit("message_updated", updateData);
+    });
+
+    // ✅ NEW: Seen Receipt
+    socket.on("message_seen", (data) => {
+      const updateData = {
+        type: 'seen',
+        id: data.id,
+      };
+      // Only send to the original sender
+      io.to(data.targetSocketId).emit("message_updated", updateData);
     });
 
     socket.on("typing", (data) => {
       const sender = getUser(socket.id);
       if (!sender) return;
-
       io.to(data.targetSocketId).emit("user_typing", {
         senderId: socket.id,
         senderName: sender.username,
@@ -66,19 +102,13 @@ function setupSocket(io) {
     socket.on("disconnect", (reason) => {
       const user = getUser(socket.id);
       if (user) {
-        console.log(
-          `❌ User Disconnected: ${user.username} - Reason: ${reason}`,
-        );
+        console.log(`❌ User Disconnected: ${user.username} - Reason: ${reason}`);
         removeUser(socket.id);
         io.emit("users_list", getOnlineUsers());
-        io.emit("user_disconnected", {
-          socketId: socket.id,
-          username: user.username,
-        });
+        io.emit("user_disconnected", { socketId: socket.id, username: user.username });
       }
     });
   });
 }
 
-// ✅ FIX: YEH LINE BOHOT ZAROORI HAI. "export default" use mat karna, warna Render crash hoga!
 module.exports = setupSocket;
